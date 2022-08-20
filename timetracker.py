@@ -77,7 +77,7 @@ class FocusTracker(object):
 
 
         def report(self):
-            res = {"total": self.total, "details": self.details, "working": self.working_hour, "playing": self.playing_hour}
+            res = {"total": self.total, "details": self.details}
             return res
 
 
@@ -94,7 +94,7 @@ class FocusTracker(object):
 
 
     def report(self):
-        res = {}
+        res = {"working": self.working_hour, "playing": self.playing_hour}
         for name, app in self.apps.items():
             res[name] = app.report()
         return res
