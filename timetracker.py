@@ -266,6 +266,9 @@ def main():
         data, _ = sock.recvfrom(1024)
         cmd = data.decode("utf-8").strip()
         print(cmd)
+        if cmd == "quit" or cmd == "exit":
+            sock.close()
+            return
         if cmd in cmds:
             cmds[cmd]()
 
