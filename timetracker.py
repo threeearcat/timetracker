@@ -77,19 +77,22 @@ class FocusTracker(object):
 
 
         def report(self):
-            res = {"total": self.total, "details": self.details}
+            res = {"total": self.total, "details": self.details, "working": self.working_hour, "playing": self.playing_hour}
             return res
 
 
-    def __init__(self):
+    def __init__(self, working_list):
         self.duration = 5
         self.apps = {}
         self.stopping = True
         self.last_track = datetime.datetime.now()
         self.idle_tracker = IdleTracker()
         self.idle_threshold = 180
+        self.working_list = working_list
+        self.working_hour = 0
+        self.playing_hour = 0
 
-        
+
     def report(self):
         res = {}
         for name, app in self.apps.items():
@@ -145,13 +148,38 @@ class FocusTracker(object):
 
         wm_name = FocusTracker.get_wm_name(buff, wm_name)
         wm_class = FocusTracker.get_wm_class(buff, wm_class)
+
+        wm_name = wm_name.removesuffix("\"").removeprefix("\"")
+        wm_class = wm_class.removesuffix("\"").removeprefix("\"")
         return wm_class, wm_name
+
+
+    def is_working(self, wm_class, wm_name):
+        wm_class = wm_class.lower()
+        wm_name = wm_name.lower()
+        for item in self.working_list:
+            cls = item['class'].lower()
+            if re.search(cls, wm_class) == None:
+                continue
+
+            # We found thbe matching class
+            if "name" not in item:
+                # and it allows all wm names
+                return True
+            # else we check the wm_name is in the allowed name list
+            names = item['name']
+            return any(re.search(name, wm_name.lower()) != None for name in names)
+        return False
 
 
     def track_focused_window(self, wm_class, wm_name, secs):
         if wm_class not in self.apps:
             self.apps[wm_class] = FocusTracker.App(wm_class)
         self.apps[wm_class].track(wm_name, secs)
+        if self.is_working(wm_class, wm_name):
+            self.working_hour += secs
+        else:
+            self.playing_hour += secs
 
 
     def get_elapsed_time(self):
@@ -190,9 +218,10 @@ class PomodoroTimer(object):
 
 
 class WorkingHourManager(object):
-    def __init__(self):
-        self.focus_tracker = FocusTracker()
+    def __init__(self, working_list):
+        self.focus_tracker = FocusTracker(working_list=working_list)
         self.pomodoro_timer = PomodoroTimer()
+        self.working_list = working_list
 
 
     def run(self):
@@ -227,7 +256,10 @@ def run_server():
 
 
 def main():
-    manager = WorkingHourManager()
+    f = open('working.json')
+    working_list = json.load(f)
+
+    manager = WorkingHourManager(working_list=working_list)
     cmds = {'run': manager.run, 'stop': manager.stop, 'report': manager.report, 'reset': manager.reset}
     sock = run_server()
     while True:
