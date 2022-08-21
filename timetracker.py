@@ -67,17 +67,34 @@ class FocusTracker(object):
             self.name = name
             self.total = 0
             self.details = {}
+            self.working = 0
+            self.working_details = {}
+            self.playing = 0
+            self.playing_details = {}
 
 
-        def track(self, misc, secs):
+        def track(self, misc, secs, working):
             self.total += secs
-            if misc not in self.details:
-                self.details[misc] = 0
-            self.details[misc] += secs
+            self.details[misc] = self.details[misc] + secs if misc in self.details else secs
+            if working:
+                self.working += secs
+                self.working_details[misc] = self.working_details[misc] + secs if misc in self.working_details else secs
+            else:
+                self.playing += secs
+                self.playing_details[misc] = self.playing_details[misc] + secs if misc in self.playing_details else secs
 
 
-        def report(self):
-            res = {"total": self.total, "details": self.details}
+        def report(self, typ="all"):
+            if typ == "all":
+                total = self.total
+                details = self.details
+            elif typ == "working":
+                total = self.working
+                details = self.working_details
+            elif typ == "playing":
+                total = self.playing
+                details = self.playing_details
+            res = {"total": total, "details": details}
             return res
 
 
@@ -93,10 +110,17 @@ class FocusTracker(object):
         self.playing_hour = 0
 
 
-    def report(self):
-        res = {"working": self.working_hour, "playing": self.playing_hour}
+    def report(self, typ):
+        res = {}
+        if typ == "all" or typ == "working":
+            res["working"] = self.working_hour
+        if typ == "all" or typ == "playing":
+            res["playing"] = self.playing_hour
         for name, app in self.apps.items():
-            res[name] = app.report()
+            rep = app.report(typ)
+            if rep["total"] == 0:
+                continue
+            res[name] = rep
         return res
 
 
@@ -173,10 +197,13 @@ class FocusTracker(object):
 
 
     def track_focused_window(self, wm_class, wm_name, secs):
+        working = self.is_working(wm_class, wm_name)
+
         if wm_class not in self.apps:
             self.apps[wm_class] = FocusTracker.App(wm_class)
-        self.apps[wm_class].track(wm_name, secs)
-        if self.is_working(wm_class, wm_name):
+        self.apps[wm_class].track(wm_name, secs, working)
+
+        if working:
             self.working_hour += secs
         else:
             self.playing_hour += secs
@@ -224,22 +251,25 @@ class WorkingHourManager(object):
         self.working_list = working_list
 
 
-    def run(self):
+    def run(self, args):
         threading.Thread(target=self.focus_tracker.run).start()
         threading.Thread(target=self.pomodoro_timer.run).start()
 
 
-    def stop(self):
+    def stop(self, args):
         self.focus_tracker.stop()
         self.pomodoro_timer.stop()
 
 
-    def report(self):
-        focus = self.focus_tracker.report()
+    def report(self, args):
+        typ = "all" if len(args) < 1 else args[0]
+        if typ not in ["all", "working", "playing"]:
+            print("wrong argument {}".format(typ))
+        focus = self.focus_tracker.report(typ)
         print(json.dumps(focus, indent=4, sort_keys=True))
 
 
-    def reset(self):
+    def reset(self, args):
         pass
 
 
@@ -263,14 +293,18 @@ def main():
     cmds = {'run': manager.run, 'stop': manager.stop, 'report': manager.report, 'reset': manager.reset}
     sock = run_server()
     while True:
-        data, _ = sock.recvfrom(1024)
-        cmd = data.decode("utf-8").strip()
-        print(cmd)
+        raw, _ = sock.recvfrom(1024)
+        data = raw.decode("utf-8").strip()
+        toks = data.split()
+        if len(toks) < 1:
+            continue
+        cmd, args = toks[0], toks[1:]
+        print(cmd, args)
         if cmd == "quit" or cmd == "exit":
             sock.close()
             return
         if cmd in cmds:
-            cmds[cmd]()
+            cmds[cmd](args)
 
 
 if __name__ == '__main__':
