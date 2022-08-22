@@ -55,7 +55,7 @@ class IdleTracker(object):
     def _load_lib(self, name: str):
         path = ctypes.util.find_library(name)
         if path is None:
-            raise OSError(f"Could not find library `{name}`")
+            raise OSError("Could not find library `{name}`")
         return ctypes.cdll.LoadLibrary(path)
 
 
@@ -100,14 +100,18 @@ class FocusTracker(object):
 
     def __init__(self, working_list):
         self.duration = 5
-        self.apps = {}
         self.stopping = True
-        self.last_track = datetime.datetime.now()
         self.idle_tracker = IdleTracker()
         self.idle_threshold = 180
         self.working_list = working_list
+        self._reset()
+
+
+    def _reset(self):
+        self.apps = {}
         self.working_hour = 0
         self.playing_hour = 0
+        self.last_track = datetime.datetime.now()
 
 
     def report(self, typ):
@@ -235,6 +239,10 @@ class FocusTracker(object):
         self.stopping = True
 
 
+    def reset(self):
+        self._reset()
+
+
 class PomodoroTimer(object):
     def __init__(self):
         pass
@@ -245,11 +253,14 @@ class PomodoroTimer(object):
     def stop(self):
         pass
 
+    def reset(self):
+        pass
+
 
 class WorkingHourManager(object):
     idle = 0
     running = 1
-       
+
     def __init__(self, working_list):
         self.focus_tracker = FocusTracker(working_list=working_list)
         self.pomodoro_timer = PomodoroTimer()
@@ -261,7 +272,7 @@ class WorkingHourManager(object):
     def run(self, args):
         if self.state != WorkingHourManager.idle:
             return
-        self.state = WorkingHourManager.running      
+        self.state = WorkingHourManager.running
         self.start = datetime.datetime.now()
         threading.Thread(target=self.focus_tracker.run).start()
         threading.Thread(target=self.pomodoro_timer.run).start()
@@ -283,7 +294,8 @@ class WorkingHourManager(object):
 
 
     def reset(self, args):
-        pass
+        self.focus_tracker.reset()
+        self.pomodoro_timer.reset()
 
 
 def run_server():
