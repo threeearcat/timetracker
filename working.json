@@ -13,6 +13,7 @@
 		"name": ["scholar", "conf", "slide", "symp",
 				 "usenix", "IEEE", "translate", "google search",
 				 "acm", "library", "calendar", "python", "go ",
-				 "stack overflow", "linux", "unix", "golang"]
+				 "stack overflow", "linux", "unix", "golang",
+				 "mail", "eurosys", "cve", "docs"]
 	}
 ]
