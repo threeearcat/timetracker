@@ -331,8 +331,10 @@ class PomodoroTimer(object):
     def report(self):
         state = self.state if self.state <= PomodoroTimer.working else PomodoroTimer.working
         state_texts = ["idle", "resting", "working"]
-        elapsed = datetime.datetime.now() - self.date_timer_armed
-        res = {"state": state_texts[state], "round": self.round(), "elapsed": elapsed.__str__()}
+        res = {"state": state_texts[state]}
+        if state != PomodoroTimer.idle:
+            elapsed = datetime.datetime.now() - self.date_timer_armed
+            res |= {"round": self.round(), "elapsed": elapsed.__str__()}
         return res
 
 
