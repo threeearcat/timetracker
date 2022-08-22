@@ -277,6 +277,7 @@ class PomodoroTimer(object):
 
 
     def arm_timer(self, time_mins, callback):
+        self.date_timer_armed = datetime.datetime.now()
         self.timer = threading.Timer(time_mins * 60, callback)
         self.timer.start()
 
@@ -314,6 +315,7 @@ class PomodoroTimer(object):
     def stop(self):
         if self.timer != None and self.timer.is_alive():
             self.timer.cancel()
+            self.date_timer_armed
             self.timer = None
         self._reset()
 
@@ -324,6 +326,14 @@ class PomodoroTimer(object):
         self._reset()
         if was_running:
             self.run()
+
+
+    def report(self):
+        state = self.state if self.state <= PomodoroTimer.working else PomodoroTimer.working
+        state_texts = ["idle", "resting", "working"]
+        elapsed = datetime.datetime.now() - self.date_timer_armed
+        res = {"state": state_texts[state], "round": self.round(), "elapsed": elapsed.__str__()}
+        return res
 
 
 class WorkingHourManager(object):
@@ -360,6 +370,9 @@ class WorkingHourManager(object):
         focus = self.focus_tracker.report(typ)
         print("Working since {}".format(self.start))
         print(json.dumps(focus, indent=4, sort_keys=True))
+
+        pomo = self.pomodoro_timer.report()
+        print(json.dumps(pomo, indent=4, sort_keys=True))
 
 
     def reset(self, args):
