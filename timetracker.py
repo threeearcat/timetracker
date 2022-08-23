@@ -356,14 +356,31 @@ class WorkingHourManager(object):
         self.working_list = working_list
 
 
+    def _handle_command(self, args, targets):
+        want = "all" if len(args) < 1 else args[0]
+        if want not in targets:
+            return
+        for target in targets[want]:
+            threading.Thread(target=target).start()
+        
+
+
     def run(self, args):
-        threading.Thread(target=self.focus_tracker.run).start()
-        threading.Thread(target=self.pomodoro_timer.run).start()
+        targets = {
+            "all": [self.focus_tracker.run, self.pomodoro_timer.run],
+            "focus": [self.focus_tracker.run],
+            "pomo": [self.pomodoro_timer.run]
+        }
+        self._handle_command(args, targets)
 
 
     def stop(self, args):
-        self.focus_tracker.stop()
-        self.pomodoro_timer.stop()
+        targets = {
+            "all": [self.focus_tracker.stop, self.pomodoro_timer.stop],
+            "focus": [self.focus_tracker.stop],
+            "pomo": [self.pomodoro_timer.stop]
+        }
+        self._handle_command(args, targets)
 
 
     def report(self, args):
