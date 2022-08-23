@@ -68,6 +68,9 @@ class IdleTracker(object):
 class FocusTracker(object):
     IdleForeground = "Unknown"
 
+    idle = 0
+    tracking = 1
+
     class App(object):
         def __init__(self, name):
             self.name = name
@@ -118,10 +121,12 @@ class FocusTracker(object):
         self.working_hour = 0
         self.playing_hour = 0
         self.last_track = datetime.datetime.now()
+        self.state = FocusTracker.idle
+        self.start = None
 
 
     def report(self, typ):
-        res = {}
+        res = {'start': self.start.__str__()}
         if typ == "all":
             res["total"] = self.working_hour + self.playing_hour
         if typ == "all" or typ == "working":
@@ -237,12 +242,18 @@ class FocusTracker(object):
 
 
     def run(self):
+        if self.state != FocusTracker.idle:
+            return
+        self.start = datetime.datetime.now()
+        self.state = FocusTracker.tracking
         self.stopping = False
         self.track_focus()
 
 
     def stop(self):
         self.stopping = True
+        self.start = None
+        self.state = FocusTracker.idle
 
 
     def reset(self):
