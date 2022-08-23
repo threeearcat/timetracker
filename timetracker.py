@@ -339,28 +339,18 @@ class PomodoroTimer(object):
 
 
 class WorkingHourManager(object):
-    idle = 0
-    running = 1
-
     def __init__(self, working_list):
         self.focus_tracker = FocusTracker(working_list=working_list)
         self.pomodoro_timer = PomodoroTimer()
         self.working_list = working_list
-        self.state = WorkingHourManager.idle
-        self.start = None
 
 
     def run(self, args):
-        if self.state != WorkingHourManager.idle:
-            return
-        self.state = WorkingHourManager.running
-        self.start = datetime.datetime.now()
         threading.Thread(target=self.focus_tracker.run).start()
         threading.Thread(target=self.pomodoro_timer.run).start()
 
 
     def stop(self, args):
-        self.state = WorkingHourManager.idle
         self.focus_tracker.stop()
         self.pomodoro_timer.stop()
 
@@ -370,7 +360,6 @@ class WorkingHourManager(object):
         if typ not in ["all", "working", "playing"]:
             print("wrong argument {}".format(typ))
         focus = self.focus_tracker.report(typ)
-        print("Working since {}".format(self.start))
         print(json.dumps(focus, indent=4, sort_keys=True))
 
         pomo = self.pomodoro_timer.report()
