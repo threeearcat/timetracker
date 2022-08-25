@@ -120,6 +120,8 @@ class FocusTracker(object):
         self.apps = {}
         self.working_hour = 0
         self.playing_hour = 0
+        self.working_after_last_report = 0 
+        self.playing_after_last_report = 0 
         self.last_track = datetime.datetime.now()
         self.state = FocusTracker.idle
         self.start = None
@@ -132,6 +134,10 @@ class FocusTracker(object):
 
         if typ == "all":
             res["total"] = self.working_hour + self.playing_hour
+            res["working after last report"] = self.working_after_last_report
+            res["playing after last report"] = self.playing_after_last_report
+            self.working_after_last_report = 0
+            self.playing_after_last_report = 0
         if typ == "all" or typ == "working":
             res["working"] = self.working_hour
         if typ == "all" or typ == "playing":
@@ -227,8 +233,10 @@ class FocusTracker(object):
 
         if working:
             self.working_hour += secs
+            self.working_after_last_report += secs
         else:
             self.playing_hour += secs
+            self.playing_after_last_report += secs
 
 
     def get_elapsed_time(self):
