@@ -94,17 +94,14 @@ class FocusTracker(object):
 
 
         def report(self, typ="all"):
-            if typ == "all":
-                total = self.total
-                details = self.details
-            elif typ == "working":
-                total = self.working
-                details = self.working_details
-            elif typ == "playing":
-                total = self.playing
-                details = self.playing_details
-            res = {"total": total, "details": details}
-            return res
+            preset = {"all": (self.total, self.details),
+                      "working": (self.working, self.working_details),
+                      "playing": (self.playing, self.playing_details)}
+            if typ not in preset:
+                return {}
+            else:
+                rep = preset[typ]
+                return {"total": rep[0], "details": rep[1]}
 
 
     def __init__(self, working_list):
@@ -146,7 +143,7 @@ class FocusTracker(object):
         if app_details:
             for name, app in self.apps.items():
                 rep = app.report(typ)
-                if rep["total"] == 0:
+                if "total" not in rep or rep["total"] == 0:
                     continue
                 res[name] = rep
         return res
@@ -400,6 +397,8 @@ class WorkingHourManager(object):
         typ = "all" if len(args) < 1 else args[0]
         if typ not in ["all", "working", "playing", "summary"]:
             print("wrong argument {}".format(typ))
+            return
+
         focus = self.focus_tracker.report(typ)
         print(json.dumps(focus, indent=4, sort_keys=True))
 
