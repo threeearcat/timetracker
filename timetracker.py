@@ -334,6 +334,8 @@ class PomodoroTimer(object):
 
 
     def stop(self):
+        if self.state == PomodoroTimer.idle:
+            return
         if self.timer != None and self.timer.is_alive():
             self.timer.cancel()
             self.date_timer_armed
