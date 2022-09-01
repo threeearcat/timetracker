@@ -14,7 +14,8 @@
 				 "usenix", "IEEE", "translate", "google search",
 				 "acm", "library", "calendar", "python", "go ",
 				 "stack overflow", "linux", "unix", "golang",
-				 "mail", "eurosys", "cve", "docs"]
+				 "mail", "eurosys", "cve", "docs", "overleaf",
+				 "slack"]
 	},
 	{
 		"class": "nautilus"
