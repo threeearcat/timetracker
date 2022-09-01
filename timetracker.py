@@ -244,11 +244,13 @@ class FocusTracker(object):
 
 
     def track_focus(self):
+        print("start focustracking")
         while not self.stopping:
             wm_class, wm_name = self.get_active_window_title()
             elapsed = self.get_elapsed_time()
             self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
             time.sleep(self.duration)
+        print("stop focustracking")
 
 
     def run(self):
