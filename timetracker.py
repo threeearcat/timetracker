@@ -17,6 +17,12 @@ from gi.repository import Notify
 Notify.init('Timetracker')
 
 
+class Notifier(object):
+    def notify(self, title, msg):
+        notify = Notify.Notification.new(title, msg)
+        notify.show()
+
+
 class IdleTracker(object):
     def __init__(self):
 
@@ -65,7 +71,7 @@ class IdleTracker(object):
         return ctypes.cdll.LoadLibrary(path)
 
 
-class FocusTracker(object):
+class FocusTracker(Notifier):
     IdleForeground = "Unknown"
 
     idle = 0
@@ -245,13 +251,13 @@ class FocusTracker(object):
 
 
     def track_focus(self):
-        print("start focustracking")
+        self.notify("Focus tracker", "start tracking focus")
         while not self.stopping:
             wm_class, wm_name = self.get_active_window_title()
             elapsed = self.get_elapsed_time()
             self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
             time.sleep(self.duration)
-        print("stop focustracking")
+        self.notify("Focus tracker", "stop tracking focus")
 
 
     def run(self):
@@ -271,12 +277,6 @@ class FocusTracker(object):
 
     def reset(self):
         self._reset()
-
-
-class Notifier(object):
-    def notify(self, title, msg):
-        notify = Notify.Notification.new(title, msg)
-        notify.show()
 
 
 class PomodoroTimer(Notifier):
