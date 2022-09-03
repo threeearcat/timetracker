@@ -117,8 +117,8 @@ class FocusTracker(object):
         self.apps = {}
         self.working_hour = 0
         self.playing_hour = 0
-        self.working_after_last_report = 0 
-        self.playing_after_last_report = 0 
+        self.working_after_last_report = 0
+        self.playing_after_last_report = 0
         self.last_track = datetime.datetime.now()
         self.state = FocusTracker.idle
         self.start = None
@@ -126,6 +126,7 @@ class FocusTracker(object):
 
     def report(self, typ):
         res = {'start': self.start.__str__()}
+        res = {'start_raw': self.start}
         app_details = typ != "summary"
         typ = typ if typ != "summary" else "all"
 
@@ -272,7 +273,13 @@ class FocusTracker(object):
         self._reset()
 
 
-class PomodoroTimer(object):
+class Notifier(object):
+    def notify(self, title, msg):
+        notify = Notify.Notification.new(title, msg)
+        notify.show()
+
+
+class PomodoroTimer(Notifier):
     idle = 0
     resting = 1
     # Working should be the last as I encode the round into self.state
@@ -294,11 +301,6 @@ class PomodoroTimer(object):
         return self.state - PomodoroTimer.working if self.state >= PomodoroTimer.working else self.round_per_session
 
 
-    def _notify(self, title, msg):
-        notify = Notify.Notification.new(title, msg)
-        notify.show()
-
-
     def arm_timer(self, time_mins, callback):
         self.date_timer_armed = datetime.datetime.now()
         self.timer = threading.Timer(time_mins * 60, callback)
@@ -318,13 +320,13 @@ class PomodoroTimer(object):
             message = "Round {} done.".format(current_round)
         message += " Resting for {} mins.".format(rest_time)
 
-        self._notify("Start resting", message)
+        self.notify("Start resting", message)
         self.arm_timer(rest_time, self.start_round)
 
 
     def start_round(self):
         round = self.round()
-        self._notify("Start working", "Round {} for {} mins".format(round, self.working_time))
+        self.notify("Start working", "Round {} for {} mins".format(round, self.working_time))
         self.arm_timer(self.working_time, self.start_resting)
 
 
@@ -363,11 +365,12 @@ class PomodoroTimer(object):
         return res
 
 
-class WorkingHourManager(object):
-    def __init__(self, working_list):
+class WorkingHourManager(Notifier):
+    def __init__(self, working_list, report_each_hour):
         self.focus_tracker = FocusTracker(working_list=working_list)
         self.pomodoro_timer = PomodoroTimer()
         self.working_list = working_list
+        self.report_each_hour = report_each_hour
 
 
     def _handle_command(self, args, targets):
@@ -376,7 +379,14 @@ class WorkingHourManager(object):
             return
         for target in targets[want]:
             threading.Thread(target=target).start()
-        
+
+
+    def _report_timer_callback(self):
+        self.report()
+        now = datetime.datetime.now()
+        sleep = 3600 - now.timestamp() % 3600
+        self.report_timer = threading.Timer(sleep, self._report_timer_callback)
+        self.report_timer.start()
 
 
     def run(self, args):
@@ -387,6 +397,12 @@ class WorkingHourManager(object):
         }
         self._handle_command(args, targets)
 
+        if self.report_each_hour:
+            now = datetime.datetime.now()
+            sleep = 3600 - now.timestamp() % 3600
+            self.report_timer = threading.Timer(sleep, self._report_timer_callback)
+            self.report_timer.start()
+
 
     def stop(self, args):
         targets = {
@@ -396,6 +412,44 @@ class WorkingHourManager(object):
         }
         self._handle_command(args, targets)
 
+        if self.report_timer:
+            self.report_timer.cancel()
+            self.report_timer = None
+
+
+    def _time_format(self, seconds: int):
+        if seconds is not None:
+            seconds = int(seconds)
+            d = seconds // (3600 * 24)
+            h = seconds // 3600 % 24
+            m = seconds % 3600 // 60
+            s = seconds % 3600 % 60
+            if d > 0:
+                return '{:02d}D {:02d}H {:02d}m {:02d}s'.format(d, h, m, s)
+            elif h > 0:
+                return '{:02d}H {:02d}m {:02d}s'.format(h, m, s)
+            elif m > 0:
+                return '{:02d}m {:02d}s'.format(m, s)
+            elif s > 0:
+                return '{:02d}s'.format(s)
+            return '-'
+
+
+    def _report_focus(self, focus):
+        fmt = "%m/%d %H:%M:%S"
+        msg = "Starting     :  {}\n".format(focus['start_raw'].strftime(fmt)) + \
+              "Total   time :  {}\n".format(self._time_format(focus['total'])) + \
+              "Working time :  {} ({})\n".format(self._time_format(focus['working']), self._time_format(focus['working after last report'])) + \
+              "Playing time :  {} ({})\n".format(self._time_format(focus['playing']), self._time_format(focus['playing after last report']))
+        self.notify("Working hour report", msg)
+        default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
+        print(json.dumps(focus, indent=4, sort_keys=True, default=default))
+        pass
+
+
+    def _report_pomodoro(self, pomo):
+        print(json.dumps(pomo, indent=4, sort_keys=True))
+
 
     def report(self, args):
         typ = "all" if len(args) < 1 else args[0]
@@ -404,10 +458,10 @@ class WorkingHourManager(object):
             return
 
         focus = self.focus_tracker.report(typ)
-        print(json.dumps(focus, indent=4, sort_keys=True))
+        self._report_focus(focus)
 
         pomo = self.pomodoro_timer.report()
-        print(json.dumps(pomo, indent=4, sort_keys=True))
+        self._report_pomodoro(pomo)
 
 
     def reset(self, args):
@@ -431,7 +485,7 @@ def main():
     f = open('working.json')
     working_list = json.load(f)
 
-    manager = WorkingHourManager(working_list=working_list)
+    manager = WorkingHourManager(working_list=working_list, report_each_hour=True)
     cmds = {'run': manager.run, 'stop': manager.stop, 'report': manager.report, 'reset': manager.reset}
     sock = run_server()
     while True:
