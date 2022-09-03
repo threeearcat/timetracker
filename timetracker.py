@@ -381,12 +381,17 @@ class WorkingHourManager(Notifier):
             threading.Thread(target=target).start()
 
 
-    def _report_timer_callback(self):
-        self.report()
+    def _arm_report_timer(self):
         now = datetime.datetime.now()
         sleep = 3600 - now.timestamp() % 3600
+        print("sleeping {}".format(sleep))
         self.report_timer = threading.Timer(sleep, self._report_timer_callback)
         self.report_timer.start()
+
+
+    def _report_timer_callback(self):
+        self.report()
+        self._arm_report_timer()
 
 
     def run(self, args):
@@ -398,10 +403,7 @@ class WorkingHourManager(Notifier):
         self._handle_command(args, targets)
 
         if self.report_each_hour:
-            now = datetime.datetime.now()
-            sleep = 3600 - now.timestamp() % 3600
-            self.report_timer = threading.Timer(sleep, self._report_timer_callback)
-            self.report_timer.start()
+            self._arm_report_timer()
 
 
     def stop(self, args):
