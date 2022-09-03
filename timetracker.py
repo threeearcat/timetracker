@@ -390,7 +390,7 @@ class WorkingHourManager(Notifier):
 
 
     def _report_timer_callback(self):
-        self.report()
+        self.report([])
         self._arm_report_timer()
 
 
