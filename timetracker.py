@@ -131,8 +131,9 @@ class FocusTracker(Notifier):
 
 
     def report(self, typ):
-        res = {'start': self.start.__str__()}
-        res = {'start_raw': self.start}
+        res = {}
+        if self.start != None:
+            res |= {'start': self.start.__str__(), 'start_raw': self.start}
         app_details = typ != "summary"
         typ = typ if typ != "summary" else "all"
 
@@ -439,10 +440,22 @@ class WorkingHourManager(Notifier):
 
     def _report_focus(self, focus):
         fmt = "%m/%d %H:%M:%S"
-        msg = "Starting     :  {}\n".format(focus['start_raw'].strftime(fmt)) + \
-              "Total   time :  {}\n".format(self._time_format(focus['total'])) + \
-              "Working time :  {} ({})\n".format(self._time_format(focus['working']), self._time_format(focus['working after last report'])) + \
-              "Playing time :  {} ({})\n".format(self._time_format(focus['playing']), self._time_format(focus['playing after last report']))
+        msg = "" if 'start_raw' not in focus else "Starting     :  {}".format(focus['start_raw'].strftime(fmt))
+
+        def append(msg, fmt, field, newline=True):
+            if newline and not msg.endswith('\n'):
+                msg = msg + '\n'
+            if field not in focus:
+                return msg
+            msg = msg + fmt.format(self._time_format(focus[field]))
+            return msg
+
+        msg = append(msg, "Total   time :  {}\n", 'total')
+        msg = append(msg, "Working time :  {}", 'working')
+        msg = append(msg, " ({})", 'working after last report', newline=False)
+        msg = append(msg, "Playing time :  {}", 'playing')
+        msg = append(msg, " ({})", 'playing after last report', newline=False)
+
         self.notify("Working hour report", msg)
         default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
         print(json.dumps(focus, indent=4, sort_keys=True, default=default))
