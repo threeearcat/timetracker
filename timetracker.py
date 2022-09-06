@@ -118,14 +118,7 @@ class FocusTracker(Notifier):
         self.idle_tracker = IdleTracker()
         self.idle_threshold = 180
         self.working_list = working_list
-
-        try:
-            with open(FocusTracker.TODAY_TXT) as f:
-                accum = json.load(f)
-                print(accum)
-        except:
-            accum = None
-        self._reset(accum)
+        self._reset(True)
 
 
     def _record_accum(self):
@@ -138,28 +131,39 @@ class FocusTracker(Notifier):
         except:
             pass
 
-    def _reset(self, accumulated):
+    def _reset(self, cont):
         self.apps = {}
-        self._reset_hours(accumulated)
+        self._reset_hours(cont)
         self.last_track = None
         self.state = FocusTracker.idle
         self.start = None
 
 
-    def _reset_hours(self, accumulated):
+    def _reset_hours(self, cont):
         # Always 0
         self.working_after_last_report = 0
         self.playing_after_last_report = 0
         now = datetime.datetime.now()
-        if accumulated is None or \
-           'today' not in accumulated or \
-           accumulated['today'] != now.date().__str__():
+        if not cont:
+            self.playing_hour = 0
+            self.working_hour = 0
+            return
+
+        try:
+            with open(FocusTracker.TODAY_TXT) as f:
+                accum = json.load(f)
+                print(accum)
+        except:
+            accum = None
+
+        if 'today' not in accum or \
+           accum['today'] != now.date().__str__():
             self.working_hour = 0
             self.playing_hour = 0
             return
 
-        self.playing_hour = accumulated['playing'] if 'playing' in accumulated else 0
-        self.working_hour = accumulated['working'] if 'working' in accumulated else 0
+        self.playing_hour = accum['playing'] if 'playing' in accum else 0
+        self.working_hour = accum['working'] if 'working' in accum else 0
 
 
     def report(self, typ):
@@ -312,7 +316,7 @@ class FocusTracker(Notifier):
 
 
     def reset(self):
-        self._reset(None)
+        self._reset(False)
 
 
 class PomodoroTimer(Notifier):
