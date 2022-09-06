@@ -16,6 +16,8 @@ gi.require_version('Notify', '0.7')
 from gi.repository import Notify
 Notify.init('Timetracker')
 
+import focusicon
+
 
 class Notifier(object):
     def notify(self, title, msg):
@@ -119,6 +121,8 @@ class FocusTracker(Notifier):
         self.idle_threshold = 180
         self.working_list = working_list
         self._reset(True)
+        self.icon = focusicon.FocusIcon()
+        self.icon.run()
 
 
     def _record_accum(self):
@@ -156,7 +160,8 @@ class FocusTracker(Notifier):
         except:
             accum = None
 
-        if 'today' not in accum or \
+        if accum is None or \
+           'today' not in accum or \
            accum['today'] != now.date().__str__():
             self.working_hour = 0
             self.playing_hour = 0
@@ -290,12 +295,14 @@ class FocusTracker(Notifier):
 
     def track_focus(self):
         self.notify("Focus tracker", "start tracking focus")
+        self.icon.show_start()
         while not self.stopping:
             wm_class, wm_name = self.get_active_window_title()
             elapsed = self.get_elapsed_time()
             self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
             time.sleep(self.duration)
         self.notify("Focus tracker", "stop tracking focus")
+        self.icon.show_stop()
 
 
     def run(self):
