@@ -418,6 +418,7 @@ class WorkingHourManager(Notifier):
         self.pomodoro_timer = PomodoroTimer()
         self.working_list = working_list
         self.report_each_hour = report_each_hour
+        self.timer_running = False
 
 
     def _handle_command(self, args, targets):
@@ -432,8 +433,10 @@ class WorkingHourManager(Notifier):
         now = datetime.datetime.now()
         sleep = 3600 - now.timestamp() % 3600
         print("sleeping {}".format(sleep))
-        self.report_timer = threading.Timer(sleep, self._report_timer_callback)
-        self.report_timer.start()
+        if not self.timer_running:
+            self.report_timer = threading.Timer(sleep, self._report_timer_callback)
+            self.report_timer.start()
+            self.timer_running = True
 
 
     def _report_timer_callback(self):
@@ -461,9 +464,10 @@ class WorkingHourManager(Notifier):
         }
         self._handle_command(args, targets)
 
-        if self.report_timer:
+        if self.timer_running and self.report_timer:
             self.report_timer.cancel()
             self.report_timer = None
+            self.timer_running = False
 
 
     def _time_format(self, seconds: int):
