@@ -79,8 +79,6 @@ class FocusTracker(Notifier):
     idle = 0
     tracking = 1
 
-    TODAY_TXT = 'today.txt'
-
     class App(object):
         def __init__(self, name):
             self.name = name
@@ -120,59 +118,23 @@ class FocusTracker(Notifier):
         self.idle_tracker = IdleTracker()
         self.idle_threshold = 180
         self.working_list = working_list
-        self._reset(True)
         self.icon = focusicon.FocusIcon()
         self.icon.run()
+        self._reset()
 
 
-    def _record_accum(self):
-        data = {"today": datetime.datetime.now().date().__str__(),
-                "working": self.working_hour,
-                "playing": self.playing_hour}
-        try:
-            with open(FocusTracker.TODAY_TXT, 'w+') as f:
-                json.dump(data, f)
-        except:
-            pass
-
-    def _reset(self, cont):
+    def _reset(self):
         self.apps = {}
-        self._reset_hours(cont)
+        self.working_hour = 0
+        self.playing_hour = 0
+        self.working_after_last_report = 0
+        self.playing_after_last_report = 0
         self.last_track = None
         self.state = FocusTracker.idle
         self.start = None
 
 
-    def _reset_hours(self, cont):
-        # Always 0
-        self.working_after_last_report = 0
-        self.playing_after_last_report = 0
-        now = datetime.datetime.now()
-        if not cont:
-            self.playing_hour = 0
-            self.working_hour = 0
-            return
-
-        try:
-            with open(FocusTracker.TODAY_TXT) as f:
-                accum = json.load(f)
-                print(accum)
-        except:
-            accum = None
-
-        if accum is None or \
-           'today' not in accum or \
-           accum['today'] != now.date().__str__():
-            self.working_hour = 0
-            self.playing_hour = 0
-            return
-
-        self.playing_hour = accum['playing'] if 'playing' in accum else 0
-        self.working_hour = accum['working'] if 'working' in accum else 0
-
-
     def report(self, typ):
-        self._record_accum()
         res = {}
         if self.start != None:
             res |= {'start': self.start.__str__(), 'start_raw': self.start}
@@ -319,11 +281,10 @@ class FocusTracker(Notifier):
         self.stopping = True
         self.start = None
         self.state = FocusTracker.idle
-        self._record_accum()
 
 
     def reset(self):
-        self._reset(False)
+        self._reset()
 
 
 class PomodoroTimer(Notifier):
