@@ -242,13 +242,13 @@ class FocusTracker(Notifier):
     def track_focus(self):
         self.notify("Focus tracker", "start tracking focus")
         self.icon.show_start()
+        self.stopping = False
         while not self.stopping:
             wm_class, wm_name = self.get_active_window_title()
             elapsed = self.get_elapsed_time()
             self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
             time.sleep(self.duration)
-        self.notify("Focus tracker", "stop tracking focus")
-        self.icon.show_stop()
+        self.stopping = False
 
 
     def run(self):
@@ -257,14 +257,20 @@ class FocusTracker(Notifier):
         self.start = datetime.datetime.now()
         self.last_track = self.start
         self.state = FocusTracker.tracking
-        self.stopping = False
         self.track_focus()
 
 
-    def stop(self):
+    def _stop(self):
         self.stopping = True
         self.start = None
         self.state = FocusTracker.idle
+        self.notify("Focus tracker", "stop tracking focus")
+        self.icon.show_stop()
+
+
+    def stop(self):
+        if self.state == FocusTracker.tracking:
+            self._stop()
 
 
     def reset(self):

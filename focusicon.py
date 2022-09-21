@@ -12,7 +12,7 @@ class FocusIcon(object):
         image = Image.new('RGBA', (size, size), (255, 255, 255, 0))
         return image
 
-    
+
     def set_color(image, size, color):
         dc = ImageDraw.Draw(image)
         dc.ellipse((0, 0, size, size), fill=color, width=0)
