@@ -45,13 +45,13 @@ class PomodoroTimer(Notifier):
             message = "Round {} done.".format(current_round)
         message += " Resting for {} mins.".format(rest_time)
 
-        self.notify("Start resting", message)
+        self.notify("Pomodoro timer", "Start resting. " + message)
         self.arm_timer(rest_time, self.start_round)
 
 
     def start_round(self):
         round = self.round()
-        self.notify("Start working", "Round {} for {} mins".format(round, self.working_time))
+        self.notify("Pomodoro timer", "Start working. Round {} for {} mins".format(round, self.working_time))
         self.arm_timer(self.working_time, self.start_resting)
 
 
@@ -65,6 +65,7 @@ class PomodoroTimer(Notifier):
     def stop(self):
         if self.state == PomodoroTimer.idle:
             return
+        self.notify("Pomodoro timer", "Stop working")
         if self.timer != None and self.timer.is_alive():
             self.timer.cancel()
             self.date_timer_armed
