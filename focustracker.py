@@ -3,6 +3,7 @@ import ctypes.util
 import datetime
 import subprocess
 import time
+import threading
 import re
 
 import focusicon
@@ -101,9 +102,12 @@ class FocusTracker(Notifier):
         self.stopping = True
         self.idle_tracker = IdleTracker()
         self.idle_threshold = 180
+        self.idle_long_threshold = 1800
         self.working_list = working_list
         self.icon = focusicon.FocusIcon()
         self.icon.run()
+        self.check_new_day_timer = None
+        self._new_day = False
         self._reset()
 
 
@@ -244,11 +248,38 @@ class FocusTracker(Notifier):
         self.icon.show_start()
         self.stopping = False
         while not self.stopping:
-            wm_class, wm_name = self.get_active_window_title()
-            elapsed = self.get_elapsed_time()
-            self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
+            if self.new_day():
+                self._reset()
+            else:
+                wm_class, wm_name = self.get_active_window_title()
+                elapsed = self.get_elapsed_time()
+                self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
             time.sleep(self.duration)
         self.stopping = False
+
+
+    def new_day(self):
+        if not self._new_day:
+            return False
+        if idle_time > self.idle_long_threshold:
+            return True
+        self._new_day = False
+        print("getting back to work")
+        return False
+
+
+    def start_new_day(self):
+        print("start a new day")
+        self._new_day = True
+
+
+    def arm_check_new_day_timer(self):
+        t = datetime.datetime.now()
+        future = datetime.datetime(t.year, t.month, t.day, 7, 0)
+        if t.timestamp() > future.timestamp():
+            future += datetime.timedelta(days=1)
+        self.check_new_day_timer = threading.Timer((future - t).total_seconds(), self.start_new_day)
+        self.check_new_day_timer.start()
 
 
     def run(self):
@@ -257,12 +288,16 @@ class FocusTracker(Notifier):
         self.start = datetime.datetime.now()
         self.last_track = self.start
         self.state = FocusTracker.tracking
+        self.arm_check_new_day_timer()
         self.track_focus()
 
 
     def _stop(self):
         self.stopping = True
         self.start = None
+        if self.check_new_day_timer != None:
+            self.check_new_day_timer.cancel()
+            self.check_new_day_timer = None
         self.state = FocusTracker.idle
         self.notify("Focus tracker", "stop tracking focus")
         self.icon.show_stop()
