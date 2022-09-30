@@ -238,7 +238,7 @@ class FocusTracker(Notifier):
 
     def get_elapsed_time(self):
         now = datetime.datetime.now()
-        duration = 0 if self.last_track is None else now - self.last_track
+        duration = 0 if self.last_track is None else (now - self.last_track).total_seconds()
         self.last_track = now
         return duration
 
@@ -253,7 +253,7 @@ class FocusTracker(Notifier):
             else:
                 wm_class, wm_name = self.get_active_window_title()
                 elapsed = self.get_elapsed_time()
-                self.track_focused_window(wm_class, wm_name, elapsed.total_seconds())
+                self.track_focused_window(wm_class, wm_name, elapsed)
             time.sleep(self.duration)
         self.stopping = False
 
