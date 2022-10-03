@@ -113,7 +113,7 @@ class WorkingHourManager(Notifier):
 
         self.notify("Working hour report", msg)
         default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
-        print(json.dumps(focus, indent=4, sort_keys=True, default=default))
+        print(json.dumps(focus, indent=4, sort_keys=True, default=default, ensure_ascii=False))
         pass
 
 
