@@ -261,6 +261,7 @@ class FocusTracker(Notifier):
     def new_day(self):
         if not self._new_day:
             return False
+        idle_time = self.idle_tracker.get_idle_time()
         if idle_time > self.idle_long_threshold:
             return True
         self._new_day = False
