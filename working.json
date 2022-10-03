@@ -15,9 +15,12 @@
 				 "acm", "library", "calendar", "python", "go ",
 				 "stack overflow", "linux", "unix", "golang",
 				 "mail", "eurosys", "cve", "docs", "overleaf",
-				 "slack", "syz"]
+				 "slack", "syz", "github"]
 	},
 	{
 		"class": "nautilus"
+	},
+	{
+		"class": "libre"
 	}
 ]
