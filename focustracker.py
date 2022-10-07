@@ -59,7 +59,8 @@ class IdleTracker(object):
 
 
 class FocusTracker(Notifier):
-    IdleForeground = "Unknown"
+    Idle = "Idle"
+    UnknownForeground = "Unknown"
 
     idle = 0
     tracking = 1
@@ -169,12 +170,12 @@ class FocusTracker(Notifier):
 
 
     def get_active_window_title(self):
-        wm_name = FocusTracker.IdleForeground
-        wm_class = FocusTracker.IdleForeground
-
         idle_time = self.idle_tracker.get_idle_time()
         if idle_time > self.idle_threshold:
-            return wm_class, wm_name
+            return FocusTracker.Idle, FoucsTracker.Idle
+
+        wm_name = FocusTracker.UnknownForeground
+        wm_class = FocusTracker.UnknownForeground
 
         root = subprocess.run(['xprop', '-root'],  stdout=subprocess.PIPE)
         if root.stdout == "":
