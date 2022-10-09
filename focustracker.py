@@ -172,7 +172,7 @@ class FocusTracker(Notifier):
     def get_active_window_title(self):
         idle_time = self.idle_tracker.get_idle_time()
         if idle_time > self.idle_threshold:
-            return FocusTracker.Idle, FoucsTracker.Idle
+            return FocusTracker.Idle, FocusTracker.Idle
 
         wm_name = FocusTracker.UnknownForeground
         wm_class = FocusTracker.UnknownForeground
