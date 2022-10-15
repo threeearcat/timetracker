@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 
-import threading
-import os
-import socket
 import datetime
 import json
+import os
+import socket
+import threading
 
 import gi
-gi.require_version('Notify', '0.7')
+
+gi.require_version("Notify", "0.7")
 from gi.repository import Notify
-Notify.init('Timetracker')
+
+Notify.init("Timetracker")
 
 
-from notifier import Notifier
 from focustracker import FocusTracker
+from notifier import Notifier
 from pomodoro import PomodoroTimer
 
 
@@ -24,14 +26,12 @@ class WorkingHourManager(Notifier):
         self.report_each_hour = report_each_hour
         self.timer_running = False
 
-
     def _handle_command(self, args, targets):
         want = "all" if len(args) < 1 else args[0]
         if want not in targets:
             return
         for target in targets[want]:
             threading.Thread(target=target).start()
-
 
     def _arm_report_timer(self):
         now = datetime.datetime.now()
@@ -42,29 +42,26 @@ class WorkingHourManager(Notifier):
             self.report_timer.start()
             self.timer_running = True
 
-
     def _report_timer_callback(self):
         self.report([])
         self._arm_report_timer()
-
 
     def run(self, args):
         targets = {
             "all": [self.focus_tracker.run, self.pomodoro_timer.run],
             "focus": [self.focus_tracker.run],
-            "pomo": [self.pomodoro_timer.run]
+            "pomo": [self.pomodoro_timer.run],
         }
         self._handle_command(args, targets)
 
         if self.report_each_hour:
             self._arm_report_timer()
 
-
     def stop(self, args):
         targets = {
             "all": [self.focus_tracker.stop, self.pomodoro_timer.stop],
             "focus": [self.focus_tracker.stop],
-            "pomo": [self.pomodoro_timer.stop]
+            "pomo": [self.pomodoro_timer.stop],
         }
         self._handle_command(args, targets)
 
@@ -72,7 +69,6 @@ class WorkingHourManager(Notifier):
             self.report_timer.cancel()
             self.report_timer = None
             self.timer_running = False
-
 
     def _time_format(self, seconds: int):
         if seconds is not None:
@@ -82,43 +78,48 @@ class WorkingHourManager(Notifier):
             m = seconds % 3600 // 60
             s = seconds % 3600 % 60
             if d > 0:
-                return '{:02d}D {:02d}H {:02d}m {:02d}s'.format(d, h, m, s)
+                return "{:02d}D {:02d}H {:02d}m {:02d}s".format(d, h, m, s)
             elif h > 0:
-                return '{:02d}H {:02d}m {:02d}s'.format(h, m, s)
+                return "{:02d}H {:02d}m {:02d}s".format(h, m, s)
             elif m > 0:
-                return '{:02d}m {:02d}s'.format(m, s)
+                return "{:02d}m {:02d}s".format(m, s)
             elif s > 0:
-                return '{:02d}s'.format(s)
-            return '-'
-
+                return "{:02d}s".format(s)
+            return "-"
 
     def _report_focus(self, focus):
         fmt = "%m/%d %H:%M:%S"
-        msg = "" if 'start_raw' not in focus else "Starting     :  {}".format(focus['start_raw'].strftime(fmt))
+        msg = (
+            ""
+            if "start_raw" not in focus
+            else "Starting     :  {}".format(focus["start_raw"].strftime(fmt))
+        )
 
         def append(msg, fmt, field, newline=True):
-            if newline and not msg.endswith('\n'):
-                msg = msg + '\n'
+            if newline and not msg.endswith("\n"):
+                msg = msg + "\n"
             if field not in focus:
                 return msg
             msg = msg + fmt.format(self._time_format(focus[field]))
             return msg
 
-        msg = append(msg, "Total   time :  {}\n", 'total')
-        msg = append(msg, "Working time :  {}", 'working')
-        msg = append(msg, " ({})", 'working after last report', newline=False)
-        msg = append(msg, "Playing time :  {}", 'playing')
-        msg = append(msg, " ({})", 'playing after last report', newline=False)
+        msg = append(msg, "Total   time :  {}\n", "total")
+        msg = append(msg, "Working time :  {}", "working")
+        msg = append(msg, " ({})", "working after last report", newline=False)
+        msg = append(msg, "Playing time :  {}", "playing")
+        msg = append(msg, " ({})", "playing after last report", newline=False)
 
         self.notify("Working hour report", msg)
         default = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
-        print(json.dumps(focus, indent=4, sort_keys=True, default=default, ensure_ascii=False))
+        print(
+            json.dumps(
+                focus, indent=4, sort_keys=True, default=default, ensure_ascii=False
+            )
+        )
         pass
-
 
     def _report_pomodoro(self, pomo):
         print(json.dumps(pomo, indent=4, sort_keys=True))
-
 
     def report(self, args):
         typ = "all" if len(args) < 1 else args[0]
@@ -132,14 +133,13 @@ class WorkingHourManager(Notifier):
         pomo = self.pomodoro_timer.report()
         self._report_pomodoro(pomo)
 
-
     def reset(self, args):
         self.focus_tracker.reset()
         self.pomodoro_timer.reset()
 
 
 def run_server():
-    server_address = '/tmp/timetracker.socket'
+    server_address = "/tmp/timetracker.socket"
     try:
         os.unlink(server_address)
     except OSError:
@@ -152,6 +152,7 @@ def run_server():
 
 def load_config():
     import argparse
+
     parser = argparse.ArgumentParser("My time tracker")
     parser.add_argument("--config", action="store", default="timetracker.conf")
     args = parser.parse_args()
@@ -180,7 +181,12 @@ def main():
     print(config)
 
     manager = WorkingHourManager(config=config, report_each_hour=True)
-    cmds = {'run': manager.run, 'stop': manager.stop, 'report': manager.report, 'reset': manager.reset}
+    cmds = {
+        "run": manager.run,
+        "stop": manager.stop,
+        "report": manager.report,
+        "reset": manager.reset,
+    }
     sock = run_server()
     while True:
         raw, _ = sock.recvfrom(1024)
@@ -202,16 +208,16 @@ default_conf = {
         "round_per_session": 0,
         "rest_time_in_session": 10,
         "rest_time_after_session": 0,
-        "working_time": 50
+        "working_time": 50,
     },
     "focustracker": {
         "duration": 5,
         "idle_threshold": 180,
         "idle_long_threshold": 1800,
-        "working_list": "working.json"
-    }
+        "working_list": "working.json",
+    },
 }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
