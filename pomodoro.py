@@ -5,10 +5,11 @@ from notifier import Notifier
 
 
 class PomodoroTimer(Notifier):
-    idle = 0
-    resting = 1
-    # Working should be the last as I encode the round into self.state
-    working = 2
+    class State:
+        idle = 0
+        resting = 1
+        # Working should be the last as I encode the round into self.state
+        working = 2
 
     def _load_config(self, config):
         self.round_per_session = config["round_per_session"]
@@ -21,12 +22,12 @@ class PomodoroTimer(Notifier):
         self._reset()
 
     def _reset(self):
-        self.state = PomodoroTimer.idle
+        self.state = PomodoroTimer.State.idle
 
     def round(self):
         return (
-            self.state - PomodoroTimer.working
-            if self.state >= PomodoroTimer.working
+            self.state - PomodoroTimer.State.working
+            if self.state >= PomodoroTimer.State.working
             else self.round_per_session
         )
 
@@ -60,13 +61,13 @@ class PomodoroTimer(Notifier):
         self.arm_timer(self.working_time, self.start_resting)
 
     def run(self):
-        if not self.state == PomodoroTimer.idle:
+        if not self.state == PomodoroTimer.State.idle:
             return
-        self.state = PomodoroTimer.working
+        self.state = PomodoroTimer.State.working
         self.start_round()
 
     def stop(self):
-        if self.state == PomodoroTimer.idle:
+        if self.state == PomodoroTimer.State.idle:
             return
         self.notify("Pomodoro timer", "Stop working")
         if self.timer != None and self.timer.is_alive():
@@ -76,7 +77,7 @@ class PomodoroTimer(Notifier):
         self._reset()
 
     def reset(self):
-        was_running = self.state >= PomodoroTimer.working
+        was_running = self.state >= PomodoroTimer.State.working
         self.stop()
         self._reset()
         if was_running:
@@ -84,11 +85,13 @@ class PomodoroTimer(Notifier):
 
     def report(self):
         state = (
-            self.state if self.state <= PomodoroTimer.working else PomodoroTimer.working
+            self.state
+            if self.state <= PomodoroTimer.State.working
+            else PomodoroTimer.State.working
         )
         state_texts = ["idle", "resting", "working"]
         res = {"state": state_texts[state]}
-        if state != PomodoroTimer.idle:
+        if state != PomodoroTimer.State.idle:
             elapsed = datetime.datetime.now() - self.date_timer_armed
             res |= {"round": self.round(), "elapsed": elapsed.__str__()}
         return res
