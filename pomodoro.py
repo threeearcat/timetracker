@@ -37,7 +37,7 @@ class PomodoroTimer(Notifier):
         self.state += 1
         next_round = current_round + 1
 
-        if next_round % self.round_per_session == 0:
+        if self.round_per_session != 0 and next_round % self.round_per_session == 0:
             rest_time = self.rest_time_after_session
             message = "Session done."
         else:
