@@ -18,10 +18,9 @@ from pomodoro import PomodoroTimer
 
 
 class WorkingHourManager(Notifier):
-    def __init__(self, working_list, report_each_hour):
-        self.focus_tracker = FocusTracker(working_list=working_list)
-        self.pomodoro_timer = PomodoroTimer()
-        self.working_list = working_list
+    def __init__(self, config, report_each_hour):
+        self.focus_tracker = FocusTracker(config=config["focustracker"])
+        self.pomodoro_timer = PomodoroTimer(config=config["pomodoro"])
         self.report_each_hour = report_each_hour
         self.timer_running = False
 
@@ -151,11 +150,36 @@ def run_server():
     return sock
 
 
-def main():
-    f = open('working.json')
-    working_list = json.load(f)
+def load_config():
+    import argparse
+    parser = argparse.ArgumentParser("My time tracker")
+    parser.add_argument("--config", action="store", default="timetracker.conf")
+    args = parser.parse_args()
+    try:
+        with open(args.config) as f:
+            conf = json.load(f)
+    except:
+        conf = default_conf
+    return merge_dict_recursive(default_conf, conf)
 
-    manager = WorkingHourManager(working_list=working_list, report_each_hour=True)
+
+def merge_dict_recursive(new: dict, existing: dict):
+    merged = new | existing
+    for k, v in merged.items():
+        if isinstance(v, dict):
+            if k not in existing:
+                # The key is not in existing dict at all, so add entire value
+                existing[k] = new[k]
+
+            merged[k] = merge_dict_recursive(new[k], existing[k])
+    return merged
+
+
+def main():
+    config = load_config()
+    print(config)
+
+    manager = WorkingHourManager(config=config, report_each_hour=True)
     cmds = {'run': manager.run, 'stop': manager.stop, 'report': manager.report, 'reset': manager.reset}
     sock = run_server()
     while True:
@@ -171,6 +195,22 @@ def main():
             return
         if cmd in cmds:
             cmds[cmd](args)
+
+
+default_conf = {
+    "pomodoro": {
+        "round_per_session": 0,
+        "rest_time_in_session": 10,
+        "rest_time_after_session": 0,
+        "working_time": 50
+    },
+    "focustracker": {
+        "duration": 5,
+        "idle_threshold": 180,
+        "idle_long_threshold": 1800,
+        "working_list": "working.json"
+    }
+}
 
 
 if __name__ == '__main__':

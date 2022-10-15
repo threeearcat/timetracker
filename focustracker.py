@@ -98,13 +98,23 @@ class FocusTracker(Notifier):
                 return {"total": rep[0], "details": rep[1]}
 
 
-    def __init__(self, working_list):
-        self.duration = 5
+    def _load_config(self, config):
+        import json
+        self.duration = config["duration"]
+        self.idle_threshold = config["idle_threshold"]
+        self.idle_long_threshold = config["idle_long_threshold"]
+        try:
+            with open(config["working_list"]) as f:
+                working_list = json.load(f)
+        except:
+            working_list = []
+        self.working_list = working_list
+
+
+    def __init__(self, config):
+        self._load_config(config)
         self.stopping = True
         self.idle_tracker = IdleTracker()
-        self.idle_threshold = 180
-        self.idle_long_threshold = 1800
-        self.working_list = working_list
         self.icon = focusicon.FocusIcon()
         self.icon.run()
         self.check_new_day_timer = None

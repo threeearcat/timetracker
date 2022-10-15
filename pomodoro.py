@@ -10,11 +10,16 @@ class PomodoroTimer(Notifier):
     # Working should be the last as I encode the round into self.state
     working = 2
 
-    def __init__(self):
-        self.round_per_session = 2
-        self.rest_time_in_session = 5
-        self.rest_time_after_session = 20
-        self.working_time = 30
+
+    def _load_config(self, config):
+        self.round_per_session = config["round_per_session"]
+        self.rest_time_in_session = config["rest_time_in_session"]
+        self.rest_time_after_session = config["rest_time_after_session"]
+        self.working_time = config["working_time"]
+
+
+    def __init__(self, config):
+        self._load_config(config)
         self._reset()
 
 
