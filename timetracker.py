@@ -209,6 +209,7 @@ default_conf = {
         "rest_time_in_session": 10,
         "rest_time_after_session": 0,
         "working_time": 50,
+        "idle_threshold": 120,
     },
     "focustracker": {
         "duration": 5,
